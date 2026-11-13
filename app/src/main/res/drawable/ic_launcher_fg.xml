@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ペンキの飛び散り -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E8453C" android:pathData="M48,36A14,14 0 1,0 48,64A14,14 0 1,0 48,36Z" />
+    <path android:fillColor="#2F80ED" android:pathData="M64,48A12,12 0 1,0 64,72A12,12 0 1,0 64,48Z" />
+    <path android:fillColor="#27AE60" android:pathData="M38,62A6,6 0 1,0 38,74A6,6 0 1,0 38,62ZM70,34A4,4 0 1,0 70,42A4,4 0 1,0 70,34ZM32,40A3,3 0 1,0 32,46A3,3 0 1,0 32,40Z" />
+</vector>
