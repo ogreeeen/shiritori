@@ -240,6 +240,45 @@ function drawBoard(target = bctx, W = board.width, H = board.height, s = 1){
       target.strokeRect(pos.x * c + 4, pos.y * c + 4, c - 8, c - 8); target.setLineDash([]); }
   }
 }
+// ---- インクを飛ばす演出：手前（画面の下）から、1文字ずつ飛んでいって「べちゃっ」 ----
+const frameP = () => new Promise(r => requestAnimationFrame(r));
+async function throwInks(word, color){
+  const chars = [...word].filter(ch => ch !== 'ー').map(norm);
+  const c = cell * P, W = board.width, H = board.height;
+  for (let k = 0; k < chars.length; k++){
+    const pos = cellPos(chars[k]); if (!pos) continue;
+    const tx = (pos.x + .5) * c, ty = (pos.y + .5) * c;
+    const sx = W / 2 + (k % 2 ? 1 : -1) * W * .12, sy = H + c * .6;      // 手前（画面の下）から
+    const dur = 300, t0 = performance.now();
+    while (true){
+      const t = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - t, 2);
+      const x = sx + (tx - sx) * e, y = sy + (ty - sy) * e - Math.sin(t * Math.PI) * c * 1.2;
+      const r = c * (.62 - .34 * e);                                       // 手前は大きく、遠くは小さく
+      drawBoard();
+      bctx.fillStyle = color; bctx.globalAlpha = .35;
+      bctx.beginPath(); bctx.arc(x - (tx - sx) * .04, y + c * .12, r * .7, 0, Math.PI * 2); bctx.fill();   // しずくの尾
+      bctx.globalAlpha = 1;
+      bctx.beginPath(); bctx.ellipse(x, y, r, r * (1.1 - .2 * e), 0, 0, Math.PI * 2); bctx.fill();
+      bctx.fillStyle = 'rgba(255,255,255,.45)'; bctx.beginPath(); bctx.arc(x - r * .3, y - r * .35, r * .22, 0, Math.PI * 2); bctx.fill();
+      if (t >= 1) break;
+      await frameP();
+    }
+    // べちゃっ：塗って、しぶきの輪を少しだけ見せる
+    addPaint(chars[k], color); renderPaint();
+    const s0 = performance.now();
+    try { navigator.vibrate && navigator.vibrate(15); } catch(e){}
+    while (performance.now() - s0 < 140){
+      const t = (performance.now() - s0) / 140;
+      drawBoard();
+      bctx.strokeStyle = color; bctx.globalAlpha = 1 - t; bctx.lineWidth = c * .08;
+      bctx.beginPath(); bctx.arc(tx, ty, c * (.45 + t * .5), 0, Math.PI * 2); bctx.stroke();
+      bctx.globalAlpha = 1;
+      await frameP();
+    }
+    drawBoard();
+  }
+}
+
 // 面積：塗りのピクセルを、いちばん近いプレイヤーの色に数える
 function areas(){
   const d = pctx.getImageData(0, 0, paint.width, paint.height).data;
@@ -326,7 +365,7 @@ function startTimer(){
 }
 function stopTimer(){ if (timerId) cancelAnimationFrame(timerId); timerId = null; }
 
-function submit(){
+async function submit(){
   if (!timerId) return;
   const w = cleanWord($('word').value);
   const bad = msg => { $('err').textContent = msg; const r = $('word'); r.classList.remove('shake'); void r.offsetWidth; r.classList.add('shake'); };
@@ -338,9 +377,9 @@ function submit(){
   stopTimer();
   const p = cur();
   G.used.add(w); G.history.push({word: w, color: p.color}); p.words++;
-  // 単語に含まれる文字を全部塗る
-  for (const ch of w){ if (ch === 'ー') continue; addPaint(norm(ch), p.color); }
-  renderPaint();
+  // 単語に含まれる文字を、1文字ずつインクを飛ばして塗る
+  $('word').blur();
+  await throwInks(w, p.color);
   const end = lastChar(w);
   if (end === 'ん'){ updateUI(); setTimeout(() => eliminate('「ん」で終わった！', `${p.name} の「${w}」は「ん」で終わったので脱落。でも、塗ったペンキは残ります。`), 500); return; }
   G.need = end;
